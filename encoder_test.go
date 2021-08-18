@@ -150,6 +150,46 @@ func TestEncodeCaller(t *testing.T) {
 	assert.Equal(t, "caller=h2g2.go:42 k=v\n", buf.String())
 }
 
+func TestEncodeNamed(t *testing.T) {
+	enc := &logfmtEncoder{buf: bufferpool.Get(), EncoderConfig: &zapcore.EncoderConfig{
+		NameKey:        "namekey",
+		EncodeTime:     zapcore.EpochTimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}}
+
+	var buf *buffer.Buffer
+	var err error
+	encodeEntry := func() {
+		buf, err = enc.EncodeEntry(
+			zapcore.Entry{
+				Level:      zapcore.DebugLevel,
+				Time:       time.Time{},
+				LoggerName: "namevalue",
+				Message:    "caller test",
+				Caller: zapcore.EntryCaller{
+					Defined: true,
+					File:    "h2g2.go",
+					Line:    42,
+				},
+			},
+			[]zapcore.Field{
+				zap.String("k", "v"),
+			},
+		)
+	}
+
+	encodeEntry()
+	assert.Nil(t, err)
+	assert.Equal(t, "namekey=namevalue k=v\n", buf.String())
+
+	enc.truncate()
+	enc.EncoderConfig.CallerKey = "caller"
+	encodeEntry()
+	assert.Nil(t, err)
+	assert.Equal(t, "namekey=namevalue caller=h2g2.go:42 k=v\n", buf.String())
+}
+
 func TestEncodeStacktrace(t *testing.T) {
 	enc := &logfmtEncoder{buf: bufferpool.Get(), EncoderConfig: &zapcore.EncoderConfig{
 		EncodeTime:     zapcore.EpochTimeEncoder,
