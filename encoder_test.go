@@ -160,12 +160,12 @@ func TestEncodeNamed(t *testing.T) {
 
 	var buf *buffer.Buffer
 	var err error
-	encodeEntry := func() {
+	encodeEntry := func(loggername string) {
 		buf, err = enc.EncodeEntry(
 			zapcore.Entry{
 				Level:      zapcore.DebugLevel,
 				Time:       time.Time{},
-				LoggerName: "namevalue",
+				LoggerName: loggername,
 				Message:    "caller test",
 				Caller: zapcore.EntryCaller{
 					Defined: true,
@@ -179,13 +179,17 @@ func TestEncodeNamed(t *testing.T) {
 		)
 	}
 
-	encodeEntry()
+	encodeEntry("")
+	assert.Nil(t, err)
+	assert.Equal(t, "k=v\n", buf.String())
+
+	encodeEntry("namevalue")
 	assert.Nil(t, err)
 	assert.Equal(t, "namekey=namevalue k=v\n", buf.String())
 
 	enc.truncate()
 	enc.EncoderConfig.CallerKey = "caller"
-	encodeEntry()
+	encodeEntry("namevalue")
 	assert.Nil(t, err)
 	assert.Equal(t, "namekey=namevalue caller=h2g2.go:42 k=v\n", buf.String())
 }
